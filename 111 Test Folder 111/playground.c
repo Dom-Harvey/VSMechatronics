@@ -38,7 +38,7 @@ int main()
     int r = 5;
     float vol = 0.0f;
 
-    vol = (4* M_PI * (float)r *(float)r) / 3
+    vol = (4* M_PI * (float)r *(float)r) / 3;
 
     printf("Volume = %.2f", vol);
     return(0);
