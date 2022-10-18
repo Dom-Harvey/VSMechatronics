@@ -121,8 +121,6 @@ int main()
 {
     // Voltage value set in Volts
     int vRef = 5;
-    float vADC = ADCtoVolt(vRef, 256);
-    printf("voltage ADC = %.2f", vADC);
 
     // Define Thermistor constants
 
