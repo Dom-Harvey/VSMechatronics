@@ -105,34 +105,61 @@ float NISTmilliVoltsToDegCKtype(float tcEMFmV)
 
 /* Write a function here to convert ADC value to voltages. (Part a, equation 1)
 Call it from the main() function below */
-float ADCtoVolt(int vRef, float nADC)
+float ADCToVolt(int vRef, float nADC)
 {
     float vADC;                                                                         // Create the voltage ADC variable as a float
 
-    vADC = ((float)vRef * nADC) * 1/1024;                                                 // Define the voltage ADC variable as per lab sheet equation
+    vADC = (float)vRef * nADC / 1024.00;                                               // Define the voltage ADC variable as per lab sheet equation
     return vADC;
 }
 
 /* Write a function to convert degrees K to degrees C  (Part b, (iv))
 Call it from the main() function below */
-
+float KelvinToCelsius(float tempK)
+{
+    float tempC = tempK - 273.15;                                                       // Define the temperature in celsius variable, and set it to kelvin + 273.15
+    return tempC;
+}
 
 int main()
 {
     // Voltage value set in Volts
-    int vRef = 5;
+    const int vRef = 5;                                                                 // Define the reference voltage in Volts, as a constant
 
     // Define Thermistor constants
+    const float temp0 = 298.15;                                                         // Define temperature-0 in Kelvin, as a constant
+    const int res0 = 10;                                                                // Define resistance-0 in kilo ohms, as a constant
+    const int thermB = 3975;                                                            // Define logarithmic constant B in Kelvin
 
     // User input for one pin value to test all outputs
+    int nADC;                                                                           // Create the variable for the ADC integer value
+    printf("\nUser input of ADC integer value between 0 and 1023 = ");
+    scanf("%d", &nADC);                                                                 // Define and display nADC for check
 
     // Calculate thermistor temperature in degrees C ( Part b, i,ii,iii & v)
+    float vADC = ADCToVolt(vRef, nADC);                                                 // Define voltage from ADC
+    float thermal_res;                                                                  // Create thermal resistance
+    float thermal_tempK;                                                                // Create temperature in Kelvin
+    float thermal_tempC;                                                                // Create temperature in celsius
+
+    thermal_res = (10 * 3.3 / vADC) - 10;                                               // Define thermal resistance in kilo ohms
+    thermal_tempK = pow((1/temp0 + 1/thermB * log(thermal_res/res0)), -1);              // Calculate the temperature in kelvin
+    thermal_tempC = KelvinToCelsius(thermal_tempK);                                     // Convert kelvin to celsius
 
     // Calculate thermocouple temperature in degrees C ( Part c, i - iv)
+    float vCouple;                                                                      // Create voltage of the thermocouple
+    float vComp;                                                                        // Create compensation voltage
+    float vTotal;                                                                       // Create a variable for the summation of the two previous voltages
+    float couple_tempC;                                                                 // Create temperature for the thermocouple
+
+    vCouple = (vADC - 0.35)/54.4;                                                       // Define voltage of the thermocouple
+    vComp = NISTdegCtoMilliVoltsKtype(thermal_tempC);                                   // Define the compensation voltage
+    vTotal = vCouple + vComp;                                                           // Define the total voltage while converting the thermocouple voltage in mV
+    couple_tempC = NISTmilliVoltsToDegCKtype(vTotal);                                   // Define the thermocouple temp
 
     // Output results
-    //printf("Thermistor temperature (deg C): %f \n", *******);
-    //printf("Thermocouple temperature with CJC (deg C): %f \n", ******);
+    printf("\n\nThermistor temperature (deg C): %f \n", thermal_tempC);
+    printf("\nThermocouple temperature with CJC (deg C): %f \n", couple_tempC);
 
     return 0;
 }
