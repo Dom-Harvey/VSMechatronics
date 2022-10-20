@@ -158,8 +158,8 @@ int main()
     couple_tempC = NISTmilliVoltsToDegCKtype(vTotal);                                   // Define the thermocouple temp
 
     // Output results
-    printf("\n\nThermistor temperature (deg C): %f \n", thermal_tempC);
-    printf("\nThermocouple temperature with CJC (deg C): %f \n", couple_tempC);
+    printf("\n\nThermistor temperature (deg C): %.2f \n", thermal_tempC);
+    printf("\nThermocouple temperature with CJC (deg C): %.2f \n", couple_tempC);
 
     return 0;
 }
