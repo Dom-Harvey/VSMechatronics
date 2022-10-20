@@ -124,7 +124,7 @@ float KelvinToCelsius(float tempK)
 int main()
 {
     // Voltage value set in Volts
-    const int vRef = 5;                                                                 // Define the reference voltage in Volts, as a constant
+    const int vRef = 3.3;                                                               // Define the reference voltage in Volts, as a constant
 
     // Define Thermistor constants
     const float temp0 = 298.15;                                                         // Define temperature-0 in Kelvin, as a constant
@@ -133,8 +133,23 @@ int main()
 
     // User input for one pin value to test all outputs
     int nADC;                                                                           // Create the variable for the ADC integer value
-    printf("\nUser input of ADC integer value between 0 and 1023 = ");
-    scanf("%d", &nADC);                                                                 // Define and display nADC for check
+    int flag = 0;                                                                       // Create a flag variable for loop checks
+
+    while (flag == 0)
+    {
+        printf("\nUser input of ADC integer value between 0 and 1023 = ");
+        scanf("%d", &nADC);                                                             // Define and display nADC for check
+
+        if (nADC > 1023 || nADC < 0)
+        {
+            printf("\n\n\n\n\nInteger value must be between 0 and 1023. Please reenter\n");
+        }
+
+        else
+        {
+            flag = 1;
+        }
+    }
 
     // Calculate thermistor temperature in degrees C ( Part b, i,ii,iii & v)
     float vADC = ADCToVolt(vRef, nADC);                                                 // Define voltage from ADC
