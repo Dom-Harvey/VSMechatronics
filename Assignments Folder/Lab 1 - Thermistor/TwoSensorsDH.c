@@ -124,7 +124,7 @@ float KelvinToCelsius(float tempK)
 int main()
 {
     // Voltage value set in Volts
-    const int vRef = 3.3;                                                               // Define the reference voltage in Volts, as a constant
+    const int vRef = 5;                                                                 // Define the reference voltage in Volts, as a constant
 
     // Define Thermistor constants
     const float temp0 = 298.15;                                                         // Define temperature-0 in Kelvin, as a constant
