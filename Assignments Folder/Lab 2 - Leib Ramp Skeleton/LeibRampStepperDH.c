@@ -51,7 +51,6 @@ const float maxAccel = 10.0;
 
 /* Step 3: Create Global variable for intial step interval*/
 const float F = 10*10*10;                                                                                       // ticks per second for C
-float p1 = F/(minSpeed*minSpeed + 2*maxAccel);                                                                  // initial step interval calculated using equation 17
 float R = maxAccel/(F*F);                                                                                       // constant multiplier from equation 19
 
 int main()
@@ -92,6 +91,8 @@ int main()
         // Calculate initial value of and p1 and R    Set p = p1
         
         ps = ((float)ticksPerSec) / maxSpeed; //  STEP 4: leave it as it is.
+        p1 = F/sqrt(minSpeed*minSpeed + 2*maxAccel);                                                            // initial step interval calculated using equation 17
+        p = p1;
 		
         /* End of pre-computation code                                    */
         /* -------------------------------------------------------------- */
@@ -105,9 +106,9 @@ int main()
             currentMillis = millis();
             if (currentMillis - prevStepTime >= p)
             {
-               moveOneStep();
-               prevStepTime = currentMillis;
-               computeNewSpeed();
+              moveOneStep();
+              prevStepTime = currentMillis;
+              computeNewSpeed();
             }
         }
     }
