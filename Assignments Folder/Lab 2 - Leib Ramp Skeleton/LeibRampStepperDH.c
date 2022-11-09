@@ -92,7 +92,7 @@ int main()
         
         ps = ((float)ticksPerSec) / maxSpeed; //  STEP 4: leave it as it is.
         p1 = F/sqrt(minSpeed*minSpeed + 2*maxAccel);                                                            // initial step interval calculated using equation 17
-        p = p1;
+        p = p1;                                                                                                 // step interval is initial step interval
 		
         /* End of pre-computation code                                    */
         /* -------------------------------------------------------------- */
