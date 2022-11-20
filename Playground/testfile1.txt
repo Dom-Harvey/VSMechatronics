@@ -1,0 +1,3 @@
+testing to print hard code text
+testing to print integer 20
+testing to print a string hello world
