@@ -169,7 +169,7 @@ int main()
 
     vCouple = (vADC - 0.35)/54.4;                                                       // Define voltage of the thermocouple
     vComp = NISTdegCtoMilliVoltsKtype(thermal_tempC);                                   // Define the compensation voltage
-    vTotal = vCouple + vComp;                                                           // Define the total voltage while converting the thermocouple voltage in mV
+    vTotal = vCouple*1000 + vComp;                                                      // Define the total voltage while converting the thermocouple voltage in mV
     couple_tempC = NISTmilliVoltsToDegCKtype(vTotal);                                   // Define the thermocouple temp
 
     // Output results
