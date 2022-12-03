@@ -8,85 +8,98 @@
 // //***    Missing/Unfinished Code
 // //err    Error in Code
 
-int main()
-{
-    struct ShapeCoordSystem square, invTri, star, raTri, cross;
+struct ShapeCoordSystem
     {
-        int numSides;
-        float x[numSides],y[numSides];
-        int z[numSides];
-    }
+        char name[20];
+        int x[100],y[100];
+        int z[100];
+
+        //*** DO DYNAMICALLY ALLOCATING
+    };
+
+int ReadShapeDataFunction(struct ShapeCoordSystem *);
+
+int main(void)
+{
+    struct ShapeCoordSystem shapes[5]; // square, invTri, star, raTri, cross;
 
     //check EXECUTE READ SHAPE DATA
-    ReadShapeDataFunction();
+    printf("Extracting Data from file...\n");
+    int readShapeDataOutput;
+    readShapeDataOutput = ReadShapeDataFunction(shapes);
 
     //*** ERROR CHECK
+    if (readShapeDataOutput == 1)
+    {
+        printf("Data Extracted Successfully");
+    }
+    else
+    {
+        printf("Data not extracted successfully");
+        return 1;
+    }
     //*** EXECUTE READ DRAW DATA
+
     //*** ERROR CHECK
+
     //*** EXECUTE SEND GCODE
+
     //*** ERROR CHECK
+
 
     return 1;
 }
 
-int ReadShapeDataFunction()
+int ReadShapeDataFunction(struct ShapeCoordSystem *ptr)
 {
-    int totNumShapes = 0;
-    //*** OPEN FILE
+    // Open file
     FILE *fShapeData;
-
     fShapeData = fopen ("ShapeStrokeData.txt", "r");
     
-    //*** ERROR CHECK - FILE OPEN?
-
+    // Check file is opened successfully
     if (fShapeData == NULL)
     {
-        printf("File opened unsuccessfully");
-        return -1;
+        printf("File opening unsuccessful\n");
+        return 1;
     }
 
-    //*** GAIN TOTAL NUMBER OF SHAPES    
-
+    // Reads total number of shapes
+    int totNumShapes;        
     fscanf(fShapeData, "%*s %d", &totNumShapes);
-
 
     //*** ERROR CHECK - MORE SHAPES THAN EXPECTED? //err FIND WAY TO MAKE NUMBER OF SHAPES IRRELEVENT
 
-
-    //*** READ SHAPE NAME AND NUMBER OF SIDES
-    char nameOfShape[20];
-    int shapeNumSides;
-
-    fscanf(fShapeData, "%s %d", nameOfShape, &shapeNumSides);
-    printf("%s", nameOfShape);
-
-    //*** ERROR CHECK - NO NAME
-
-
-    //*** ERROR CHECK - NO NUMBER OF SIDES?
-
-
-    //*** PopulateShapeArrayFunction() //err USE STRUCTS?
-    if (strcmp(nameOfShape, "SQUARE"))
+    // Reads the next line to get a shape name and number of sides
+    int j;
+    for (j = 0; (j < totNumShapes); j++)
     {
-        printf("Hello World");
-        //square.numSides = shapeNumSides;
-        //int i;
-        //for (i = 0; (i <= shapeNumSides); i++)
-        //{
-        //    fscanf(fShapeData, "%d %d %d", square.x[i], square.y[i], square.z[i]);
-        //}
-        //printf("%s", square.x);
+        char nameOfShape[20];
+        int shapeNumSides;
+
+        fscanf(fShapeData, "%s %d", nameOfShape, &shapeNumSides);
+
+        //*** ERROR CHECK - NO NAME
+
+
+        //*** ERROR CHECK - NO NUMBER OF SIDES?
+
+
+        // Populates a struct for each shape
+        strcpy(ptr->name, nameOfShape);
+        int i;
+        for (i = 0; (i < shapeNumSides); i++)
+        {
+            fscanf(fShapeData, "%d %d %d", &ptr->x[i], &ptr->y[i], &ptr->z[i]);
+        }
+        ptr++;
     }
+    // Closes the struct and checks that the file was closed successfully
+    fclose(fShapeData);
 
-
-    //*** CHECK FOR END OF FILE
-
-
-    //*** CLOSE FILE
-
-
-    //*** ERROR CHECK - FILE CLOSED?
+    if (fShapeData == NULL)
+    {
+        printf("File not closed successfully");
+    }
 
     return 1;
 }
