@@ -12,19 +12,25 @@
 struct ShapeCoordSystem
 {
     char name[20];
-    int x[100],y[100];
-    int z[100];
+    int x[100],y[100], z[100];
 
     //*** DO DYNAMICALLY ALLOCATING
 };
 
+struct CommandArray
+{
+    int xGrid[9], yGrid[9], zGrid[9];
+    char shape[20];
+};
+
 int ReadShapeDataFunction(struct ShapeCoordSystem *);
-int DrawShapesFunction();
+int DrawShapesFunction(struct CommandArray *);
 
 int main(void)
 {
     // Define ShapeCoordSystem for shapes square, invTri, star, raTri, cross;
     struct ShapeCoordSystem shapes[5];
+    struct CommandArray commandArray[1];
 
     // Execute ReadShapeDataFunction
     printf("Extracting Shape Data from file...\n");
@@ -44,7 +50,7 @@ int main(void)
     //*** EXECUTE READ DRAW DATA
     printf("\nExtracting Drawing Commands from file...\n");
     int drawShapeFunctionOutput;
-    drawShapeFunctionOutput = DrawShapesFunction();
+    drawShapeFunctionOutput = DrawShapesFunction(commandArray);
 
     //*** ERROR CHECK
     if (drawShapeFunctionOutput == 1)
@@ -85,7 +91,7 @@ int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
     //*** ERROR CHECK - MORE SHAPES THAN EXPECTED? //err FIND WAY TO MAKE NUMBER OF SHAPES IRRELEVENT
 
     // Reads the next line to get a shape name and number of sides
-    int j;
+    int j = 0;
     for (j = 0; (j < totNumShapes); j++)
     {
         char nameOfShape[20];
@@ -102,7 +108,7 @@ int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
 
         // Populates a struct for each shape
         strcpy(ptr1->name, nameOfShape);
-        int i;
+        int i = 0;
         for (i = 0; (i < shapeNumSides); i++)
         {
             fscanf(fShapeData, "%d %d %d", &ptr1->x[i], &ptr1->y[i], &ptr1->z[i]);
@@ -122,7 +128,7 @@ int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
     return 1;
 }
 
-int DrawShapesFunction()
+int DrawShapesFunction(struct CommandArray *ptr2)
 {
     //*** OPEN FILE
     FILE *fDrawShapes;
@@ -149,7 +155,7 @@ int DrawShapesFunction()
 
     //*** SKIP FIRST LINE IF GRID
     char firstLine[20];
-    fscanf(fDrawShapes, "%s", firstLine);
+    fscanf(fDrawShapes, "%s %*d", firstLine);
 
     if (strcmp(firstLine, "DRAW_GRID") == 0)
     {
@@ -164,10 +170,13 @@ int DrawShapesFunction()
         counter = totalSpace;
     }
 
-    //*** POPULATE COMMAND ARRAY WITH GRID COORDS AND SHAPE NAMES
-
-    //*** CLOSE FILE
-    fclose(fDrawShapes);
+    //*** POPULATE COMMAND ARRAY
+    int i = 0;
+    for (i = 0; (i <= counter); i++)
+    {
+        fscanf(fDrawShapes, "%d %d %s", &ptr2->xGrid[i], &ptr2->yGrid[i], ptr2->shape);
+        //F printf("%d %d %s\n", ptr2->xGrid[i], ptr2->yGrid[i], ptr2->shape);
+    }
 
     //*** CHECK FILE WAS CLOSED
     if (fDrawShapes == NULL)
