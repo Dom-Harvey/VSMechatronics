@@ -15,7 +15,7 @@ struct ShapeCoordSystem
     int sides;
     int x[100],y[100], z[100];
 
-    //*** DO DYNAMICALLY ALLOCATING
+    //*** DO DYNAMIC ALLOCATION
     //*** MAKE Z BOOLEAN
 };
 
@@ -33,9 +33,9 @@ int GCodeGenerationFunction(struct CommandArray *, struct ShapeCoordSystem *);
 int main(void)
 {
     // Define ShapeCoordSystem for shapes square, invTri, star, raTri, cross;
-    struct ShapeCoordSystem shapes[5];
+    struct ShapeCoordSystem shapes[5]; //*** DYNAMIC ALLOCATION
     // Define CommandArray
-    struct CommandArray commandArray[1];
+    struct CommandArray commandArray[1]; //err ONLY 1 - DON'T NEED ARRAY
 
     // Execute ReadShapeDataFunction
     printf("Extracting Shape Data from file...\n");
@@ -134,7 +134,7 @@ int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
         }
         ptr1++;
     }
-    // Closes the struct and checks that the file was closed successfully
+    // Closes the shape Data and checks that the file was closed successfully
     fclose(fShapeData);
 
     if (fShapeData == NULL)
