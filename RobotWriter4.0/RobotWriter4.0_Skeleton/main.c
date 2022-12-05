@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <conio.h>
+#include <windows.h>
+#include "rs232.h"
+#include "serial.h"
 
-//KEY:
-// //       Real comment
-// //check  Temporary comment
-// //***    Missing/Unfinished Code
-// //err    Error in Code
-// //F      Flag term
+#define bdrate 115200               /* 115200 baud */
+
+void SendCommands (char *buffer );
 
 struct ShapeCoordSystem
 {
@@ -29,9 +29,9 @@ struct CommandArray
 
 int ReadShapeDataFunction(struct ShapeCoordSystem *);
 int DrawShapesFunction(struct CommandArray *);
-int GCodeGenerationFunction(struct CommandArray *, struct ShapeCoordSystem *);
+int GCodeGenerationFunction(char buffer[100], struct CommandArray *, struct ShapeCoordSystem *);
 
-int main(void)
+int main()
 {
     // Define ShapeCoordSystem for shapes square, invTri, star, raTri, cross;
     struct ShapeCoordSystem shapes[6]; //*** DYNAMIC ALLOCATION
@@ -67,25 +67,71 @@ int main(void)
     {
         printf("Drawing Instructions not extracted successfully\n");
         return 1;
+    }    
+
+
+    char buffer[100];
+ 
+    // If we cannot open the port then give up immediatly
+    if ( CanRS232PortBeOpened() == -1 )
+    {
+        printf ("\nUnable to open the COM port (specified in serial.h) ");
+        exit (0);
     }
 
+    // Time to wake up the robot
+    printf ("\nAbout to wake up the robot\n");
+
+    // We do this by sending a new-line
+    sprintf (buffer, "\n");
+    // printf ("Buffer to send: %s", buffer); // For diagnostic purposes only, normally comment out
+    PrintBuffer (&buffer[0]);
+    Sleep(100);
+
+    // This is a special case - we wait  until we see a dollar ($)
+    WaitForDollar();
+
+    printf ("\nThe robot is now ready to draw\n");
+
+    //These commands get the robot into 'ready to draw mode' and need to be sent before any writing commands
+    //sprintf (buffer, "G1 X0 Y0 F1000\n");
+
+    // These are sample commands to draw out some information - these are the ones you will be generating.
+    //sprintf (buffer, "G0 X-13.41849 Y0.000\n");
     // Execute GCodeGenerationFunction
     printf("\nGenerating G-Code...\n");
     int gCodeOutput;
-    gCodeOutput =  GCodeGenerationFunction(commandArray, shapes);
+    gCodeOutput =  GCodeGenerationFunction(buffer, commandArray, shapes);
 
     // Check if G-Code was generated successfully
     if (gCodeOutput == 1)
     {
-        printf("G-Code generated Successfully\n");
+        printf("G-Code generated and sent Successfully\n");
     }
     else
     {
         printf("G-Code not generated successfully\n");
         return 1;
     }
+    
+    
 
-    return 1;
+    // Before we exit the program we need to close the COM port
+    CloseRS232Port();
+    printf("Com port now closed\n");
+
+    return (0);
+}
+
+// Send the data to the robot - note in 'PC' mode you need to hit space twice
+// as the dummy 'WaitForReply' has a getch() within the function.
+void SendCommands (char *buffer )
+{
+    // printf ("Buffer to send: %s", buffer); // For diagnostic purposes only, normally comment out
+    PrintBuffer (&buffer[0]);
+    WaitForReply();
+    Sleep(100); // Can omit this when using the writing robot but has minimal effect
+    // getch(); // Omit this once basic testing with emulator has taken place
 }
 
 int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
@@ -151,7 +197,10 @@ int DrawShapesFunction(struct CommandArray *ptr2)
 {
     //*** OPEN FILE
     FILE *fDrawShapes;
-    fDrawShapes = fopen ("DrawShapes.txt", "r");
+    char fileToOpen[50];
+    printf("Please enter the file you would like to read in name.txt format: ");
+    scanf("%s", fileToOpen);
+    fDrawShapes = fopen(fileToOpen, "r");
     
     //*** CHECK FILE WAS OPENED
     if (fDrawShapes == NULL)
@@ -212,7 +261,7 @@ int DrawShapesFunction(struct CommandArray *ptr2)
         {
             ptr2->shapeMarker[i] = 4;
         }
-        else if (strcmp(ptr2->shape, "HARVEY") == 0)
+        else if (strcmp(ptr2->shape, "CUSTOM_SHAPE") == 0)
         {
             ptr2->shapeMarker[i] = 5;
         }
@@ -232,8 +281,9 @@ int DrawShapesFunction(struct CommandArray *ptr2)
     return 1;
 }
 
-int GCodeGenerationFunction(struct CommandArray *ptrMain, struct ShapeCoordSystem *ptrShape)
+int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, struct ShapeCoordSystem *ptrShape)
 {
+
     //F printf("%s", ptrShape[1].name);
     //*** OPEN GCODE FILE
     FILE *fGCode;
@@ -251,8 +301,9 @@ int GCodeGenerationFunction(struct CommandArray *ptrMain, struct ShapeCoordSyste
     int spindle = 3;
     int penUp = 0;
 
-    fprintf(fGCode, "F%d M%d S%d", penSpeed, spindle, penUp);
-    //sprintf(fGCode, "F%d M%d S%d", penSpeed, spindle, penUp);
+    //fprintf(fGCode, "F%d M%d S%d", penSpeed, spindle, penUp);
+    sprintf(buffer, "F%d\nM%d\nS%d", penSpeed, spindle, penUp);
+    SendCommands(buffer);
     
     //*** DRAW GRID
     int gridSquare = 90;
@@ -260,21 +311,21 @@ int GCodeGenerationFunction(struct CommandArray *ptrMain, struct ShapeCoordSyste
     if (ptrMain->drawFlag == 1)
     {
         //check zero pen
-        fprintf(fGCode, "\nG0 X0 Y0\n");
-        //sprintf(buffer, "\nG0 X0 Y0\n");
-        //SendCommands(buffer)
+        //fprintf(fGCode, "\nG0 X0 Y0\n");
+        sprintf(buffer, "\nG0 X0 Y0\n");
+        SendCommands(buffer);
         //check draw square
-        fprintf(fGCode, "\nS1000\nG1 X%d Y0\nG1 X%d Y%d\nG1 X0 Y%d\nG0 X0 Y0\n", gridSquare, gridSquare, -gridSquare, -gridSquare);
-        //sprintf(buffer, "\nS1000\nG1 X%d Y0\nG1 X%d Y%d\nG1 X0 Y%d\nG0 X0 Y0\n", gridSquare, gridSquare, -gridSquare, -gridSquare);
-        //SendCommands(buffer)
+        //fprintf(fGCode, "\nS1000\nG1 X%d Y0\nG1 X%d Y%d\nG1 X0 Y%d\nG0 X0 Y0\n", gridSquare, gridSquare, -gridSquare, -gridSquare);
+        sprintf(buffer, "\nS1000\nG1 X%d Y0\nG1 X%d Y%d\nG1 X0 Y%d\nG1 X0 Y0\n", gridSquare, gridSquare, -gridSquare, -gridSquare);
+        SendCommands(buffer);
         //check draw columns
-        fprintf(fGCode, "\nS0\nG0 X%d Y0\nS1000\nG1 X%d Y%d\nS0\nG0 X%d Y0\nS1000\nG1 X%d Y%d\n", gridSquare/numRowsColumns, gridSquare/numRowsColumns, -gridSquare, 2*gridSquare/numRowsColumns, 2*gridSquare/numRowsColumns, -gridSquare);
-        //sprintf(buffer, "\nS0\nG0 X%d Y0\nS1000\nG1 X%d Y%d\nS0\nG0 X%d Y0\nS1000\nG1 X%d Y%d\n", gridSquare/numRowsColumns, gridSquare/numRowsColumns, -gridSquare, 2*gridSquare/numRowsColumns, 2*gridSquare/numRowsColumns, -gridSquare);
-        //SendCommands(buffer)
+        //fprintf(fGCode, "\nS0\nG0 X%d Y0\nS1000\nG1 X%d Y%d\nS0\nG0 X%d Y0\nS1000\nG1 X%d Y%d\n", gridSquare/numRowsColumns, gridSquare/numRowsColumns, -gridSquare, 2*gridSquare/numRowsColumns, 2*gridSquare/numRowsColumns, -gridSquare);
+        sprintf(buffer, "\nS0\nG0 X%d Y0\nS1000\nG1 X%d Y%d\nS0\nG0 X%d Y0\nS1000\nG1 X%d Y%d\n", gridSquare/numRowsColumns, gridSquare/numRowsColumns, -gridSquare, 2*gridSquare/numRowsColumns, 2*gridSquare/numRowsColumns, -gridSquare);
+        SendCommands(buffer);
         //check draw rows
-        fprintf(fGCode, "\nS0\nG0 X0 Y%d\nS1000\nG1 X%d Y%d\nS0\nG0 X0 Y%d\nS100\nG1 X%d Y%d\n", -gridSquare/numRowsColumns, gridSquare, -gridSquare/numRowsColumns, -2*gridSquare/numRowsColumns, gridSquare, -2*gridSquare/numRowsColumns);
-        //SendCommands(buffer)
-        //fprintf(buffer, "\nS0\nG0 X0 Y%d\nS1000\nG1 X%d Y%d\nS0\nG0 X0 Y%d\nS100\nG1 X%d Y%d\n", -gridSquare/numRowsColumns, gridSquare, -gridSquare/numRowsColumns, -2*gridSquare/numRowsColumns, gridSquare, -2*gridSquare/numRowsColumns);
+        //fprintf(fGCode, "\nS0\nG0 X0 Y%d\nS1000\nG1 X%d Y%d\nS0\nG0 X0 Y%d\nS100\nG1 X%d Y%d\n", -gridSquare/numRowsColumns, gridSquare, -gridSquare/numRowsColumns, -2*gridSquare/numRowsColumns, gridSquare, -2*gridSquare/numRowsColumns);
+        sprintf(buffer, "\nS0\nG0 X0 Y%d\nS1000\nG1 X%d Y%d\nS0\nG0 X0 Y%d\nS100\nG1 X%d Y%d\n", -gridSquare/numRowsColumns, gridSquare, -gridSquare/numRowsColumns, -2*gridSquare/numRowsColumns, gridSquare, -2*gridSquare/numRowsColumns);
+        SendCommands(buffer);
 
     }
     //*** GET LOCATION FROM COMMAND ARRAY
@@ -282,6 +333,7 @@ int GCodeGenerationFunction(struct CommandArray *ptrMain, struct ShapeCoordSyste
     int iMax = ptrMain->numberOfCommands;
     int j = 0;
     int occupiedArray[numRowsColumns][numRowsColumns];
+    memset(occupiedArray, 0, sizeof occupiedArray);
     float newXZero;
     float newYZero;
     int toDrawShape;
@@ -320,15 +372,15 @@ int GCodeGenerationFunction(struct CommandArray *ptrMain, struct ShapeCoordSyste
         }
 
         // Zero pen at desired grid space
-        fprintf(fGCode,"\nS0\nG0 X%.2f Y%.2f\n", newXZero, newYZero);
-        //sprintf(buffer,"\nS0\nG0 X%.2f Y%.2f\n", newXZero, newYZero);
-        //SendCommands(buffer)
+        //fprintf(fGCode,"\nS0\nG0 X%.2f Y%.2f\n", newXZero, newYZero);
+        sprintf(buffer,"\nS0\nG0 X%.2f Y%.2f\n", newXZero, newYZero);
+        SendCommands(buffer);
         // Generate sequence for current shape
         for (j = 0; (j < ptrShape[toDrawShape].sides); j++)
         {
-            fprintf(fGCode, "G%d X%0.2f Y%.2f\n", ptrShape[toDrawShape].z[j], newXZero + scalar*ptrShape[toDrawShape].x[j], newYZero + scalar*ptrShape[toDrawShape].y[j]);
-            //sprintf(buffer, "G%d X%0.2f Y%.2f\n", ptrShape[toDrawShape].z[j], newXZero + scalar*ptrShape[toDrawShape].x[j], newYZero + scalar*ptrShape[toDrawShape].y[j]);
-            //SendCommands(buffer)
+            fprintf(fGCode, "\nS%d\nG%d X%0.2f Y%.2f\n", 1000*ptrShape[toDrawShape].z[j], ptrShape[toDrawShape].z[j], newXZero + scalar*ptrShape[toDrawShape].x[j], newYZero + scalar*ptrShape[toDrawShape].y[j]);
+            sprintf(buffer, "\nS%d\nG%d X%0.2f Y%.2f\n", 1000*ptrShape[toDrawShape].z[j],  ptrShape[toDrawShape].z[j], newXZero + scalar*ptrShape[toDrawShape].x[j], newYZero + scalar*ptrShape[toDrawShape].y[j]);
+            SendCommands(buffer);
 
 
         }
@@ -336,7 +388,8 @@ int GCodeGenerationFunction(struct CommandArray *ptrMain, struct ShapeCoordSyste
         occupiedArray[xGridLoc][yGridLoc] = 1;
     }
     // Zeroes pen now that sequence is complete
-    fprintf(fGCode, "\nG0 X0 Y0");
+    fprintf(fGCode, "\nS0\nG0 X0 Y0\n");
+    Sleep(5000);
 
     // Closes G-Code
     fclose(fGCode);
