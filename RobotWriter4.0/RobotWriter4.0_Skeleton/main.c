@@ -11,12 +11,9 @@ void SendCommands (char *buffer );
 
 struct ShapeCoordSystem
 {
-    char name[20];
+    char name[50];
     int sides;
     int x[100],y[100], z[100];
-
-    //*** DO DYNAMIC ALLOCATION
-    //*** MAKE Z BOOLEAN
 };
 
 struct CommandArray
@@ -27,50 +24,68 @@ struct CommandArray
     char shape[20];
 };
 
-int ReadShapeDataFunction(struct ShapeCoordSystem *);
-int DrawShapesFunction(struct CommandArray *);
+int ReadShapeDataFunction(int totalShapes, struct ShapeCoordSystem *);
+int DrawShapesFunction(int totalShapes, struct CommandArray *);
 int GCodeGenerationFunction(char buffer[100], struct CommandArray *, struct ShapeCoordSystem *);
 
 int main()
 {
-    // Define ShapeCoordSystem for shapes square, invTri, star, raTri, cross;
-    struct ShapeCoordSystem shapes[6]; //*** DYNAMIC ALLOCATION
+    // Open file
+    FILE *fShapeData;
+    fShapeData = fopen ("ShapeStrokeData.txt", "r");
+    // Reads total number of shapes and close file
+    int totNumShapes;        
+    fscanf(fShapeData, "%*s %d", &totNumShapes);
+    fclose(fShapeData);
+
+    // Define ShapeCoordSystem for total shapes
+    struct ShapeCoordSystem shapes[totNumShapes];
     // Define CommandArray
     struct CommandArray commandArray[1]; //err ONLY 1 - DON'T NEED ARRAY
 
     // Execute ReadShapeDataFunction
     printf("Extracting Shape Data from file...\n");
     int readShapeDataOutput;
-    readShapeDataOutput = ReadShapeDataFunction(shapes);
+    readShapeDataOutput = ReadShapeDataFunction(totNumShapes, shapes);
 
-    // Check if Shape Data was read successfully
-    if (readShapeDataOutput == 1)
+    // Check ShapeDataFunction output
+    switch(readShapeDataOutput)
     {
-        printf("Shape Data Extracted Successfully\n");
+        case 1:
+        printf("Shape Data Extracted Successfully!\n");
+        break;
+        case 2:
+        printf("Shape Data file not opened successfully\n");
+        break;
+        case 3:
+        printf("Shape Data file not closed correctly\n");
+        break;
+        default:
+        printf("WARNING! Unexpected behaviour in Read Shape Data Function\n");
     }
-    else
-    {
-        printf("Shape Data not extracted successfully\n");
-        return 1;
-    }
+
     // Execute DrawShapesFunction
     printf("\nExtracting Drawing Commands from file...\n");
-    int drawShapeFunctionOutput;
-    drawShapeFunctionOutput = DrawShapesFunction(commandArray);
+    int drawShapeOutput;
+    drawShapeOutput = DrawShapesFunction(totNumShapes, commandArray);
 
-    // Check if Shape Draw Data was read successfully
-    if (drawShapeFunctionOutput == 1)
+    switch(drawShapeOutput)
     {
-        printf("Drawing Instructions extracted Successfully\n");
+        case 1:
+        printf("Shape Sequence Extracted Successfully!\n");
+        break;
+        case 2:
+        printf("Shape Sequence file not opened successfully\n");
+        break;
+        case 3:
+        printf("Shape Data file not closed correctly\n");
+        break;
+        default:
+        printf("WARNING! Unexpected behaviour in Read Shape Data Function\n");
     }
-    else
-    {
-        printf("Drawing Instructions not extracted successfully\n");
-        return 1;
-    }    
 
 
-    char buffer[100];
+    char buffer[10000];
  
     // If we cannot open the port then give up immediatly
     if ( CanRS232PortBeOpened() == -1 )
@@ -103,18 +118,17 @@ int main()
     int gCodeOutput;
     gCodeOutput =  GCodeGenerationFunction(buffer, commandArray, shapes);
 
-    // Check if G-Code was generated successfully
-    if (gCodeOutput == 1)
+    switch(gCodeOutput)
     {
-        printf("G-Code generated and sent Successfully\n");
-    }
-    else
-    {
+        case 1:
+        printf("G-Code generated and send successfully\n");
+        break;
+        case 2:
         printf("G-Code not generated successfully\n");
-        return 1;
-    }
-    
-    
+        break;
+        default:
+        printf("WARNING! Unexpected behaviour in G-Code Generation Function\n");
+    } 
 
     // Before we exit the program we need to close the COM port
     CloseRS232Port();
@@ -134,7 +148,7 @@ void SendCommands (char *buffer )
     // getch(); // Omit this once basic testing with emulator has taken place
 }
 
-int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
+int ReadShapeDataFunction(int totalShapes, struct ShapeCoordSystem *ptr1)
 {
     // Open file
     FILE *fShapeData;
@@ -143,32 +157,23 @@ int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
     // Check file is opened successfully
     if (fShapeData == NULL)
     {
-        printf("File opening unsuccessful\n");
-        return 1;
+        return 2;
     }
 
-    // Reads total number of shapes
-    int totNumShapes;        
-    fscanf(fShapeData, "%*s %d", &totNumShapes);
-
-    //*** ERROR CHECK - MORE SHAPES THAN EXPECTED? //err FIND WAY TO MAKE NUMBER OF SHAPES IRRELEVENT
+    //skip number of shapes (scanned in already)
+    fscanf(fShapeData, "%*s %*d");
 
     // Reads the next line to get a shape name and number of sides
     int j = 0;
-    for (j = 0; (j < totNumShapes); j++)
+    for (j = 0; (j < totalShapes); j++)
     {
         char nameOfShape[20];
         int shapeNumSides;
 
         fscanf(fShapeData, "%s %d", nameOfShape, &shapeNumSides);
         ptr1->sides = shapeNumSides;
-        //F printf("%s %d\n", nameOfShape, shapeNumSides);
-
-        //*** ERROR CHECK - NO NAME
-
 
         //*** ERROR CHECK - NO NUMBER OF SIDES?
-
 
         // Populates a struct for each shape
         strcpy(ptr1->name, nameOfShape);
@@ -176,9 +181,6 @@ int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
         for (i = 0; (i < shapeNumSides); i++)
         {
             fscanf(fShapeData, "%d %d %d", &ptr1->x[i], &ptr1->y[i], &ptr1->z[i]);
-            //F printf("%d %d %d\n", ptr1->x[i], ptr1->y[i], ptr1->z[i]);
-            //*** OFFSET
-
         }
         ptr1++;
     }
@@ -187,13 +189,13 @@ int ReadShapeDataFunction(struct ShapeCoordSystem *ptr1)
 
     if (fShapeData == NULL)
     {
-        printf("File not closed successfully");
+        return 3;
     }
 
     return 1;
 }
 
-int DrawShapesFunction(struct CommandArray *ptr2)
+int DrawShapesFunction(int totalShapes, struct CommandArray *ptr2)
 {
     //*** OPEN FILE
     FILE *fDrawShapes;
@@ -205,7 +207,6 @@ int DrawShapesFunction(struct CommandArray *ptr2)
     //*** CHECK FILE WAS OPENED
     if (fDrawShapes == NULL)
     {
-        printf("File opening unsuccessful\n");
         return 2;
     }
 
@@ -238,9 +239,10 @@ int DrawShapesFunction(struct CommandArray *ptr2)
 
     //*** POPULATE COMMAND ARRAY
     int i = 0;
+    int newMarker = totalShapes; //*** MAKE NOT MAGIC NUMBER
     for (i = 0; (i <= counter); i++)
     {
-        fscanf(fDrawShapes, "%d %d %s", &ptr2->xGrid[i], &ptr2->yGrid[i], ptr2->shape);
+        fscanf(fDrawShapes, "%d %d %s", &ptr2->xGrid[i], &ptr2->yGrid[i], ptr2->shape); //err MAKE NOT BAD
         if (strcmp(ptr2->shape, "SQUARE") == 0)
         {
             ptr2->shapeMarker[i] = 0;
@@ -265,16 +267,18 @@ int DrawShapesFunction(struct CommandArray *ptr2)
         {
             ptr2->shapeMarker[i] = 5;
         }
-
-        //F printf("%d %d %s\n", ptr2->xGrid[i], ptr2->yGrid[i], ptr2->shape);
-        //F printf("%d %d %d\n", ptr2->xGrid[i], ptr2->yGrid[i], ptr2->shapeMarker[i]);
+        else
+        {
+            printf("\nUnknown Shape detected! Allocating marker value of %d", newMarker);
+            ptr2->shapeMarker[i] = newMarker;
+            newMarker++;
+        }
     }
 
     //*** CHECK FILE WAS CLOSED
     if (fDrawShapes == NULL)
     {
-        printf("File not closed successfully");
-        return 2;
+        return 3;
     }
 
 
@@ -283,8 +287,6 @@ int DrawShapesFunction(struct CommandArray *ptr2)
 
 int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, struct ShapeCoordSystem *ptrShape)
 {
-
-    //F printf("%s", ptrShape[1].name);
     //*** OPEN GCODE FILE
     FILE *fGCode;
     fGCode = fopen("GCode.txt", "w");
@@ -292,7 +294,6 @@ int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, stru
     //*** CHECK GCODE OPENED
     if (fGCode == NULL)
     {
-        printf("File opening unsuccessfull");
         return 2;
     }
 
@@ -314,6 +315,7 @@ int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, stru
         //fprintf(fGCode, "\nG0 X0 Y0\n");
         sprintf(buffer, "\nG0 X0 Y0\n");
         SendCommands(buffer);
+        Sleep(5000);
         //check draw square
         //fprintf(fGCode, "\nS1000\nG1 X%d Y0\nG1 X%d Y%d\nG1 X0 Y%d\nG0 X0 Y0\n", gridSquare, gridSquare, -gridSquare, -gridSquare);
         sprintf(buffer, "\nS1000\nG1 X%d Y0\nG1 X%d Y%d\nG1 X0 Y%d\nG1 X0 Y0\n", gridSquare, gridSquare, -gridSquare, -gridSquare);
@@ -332,12 +334,12 @@ int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, stru
     int i = 0;
     int iMax = ptrMain->numberOfCommands;
     int j = 0;
-    int occupiedArray[numRowsColumns][numRowsColumns];
-    memset(occupiedArray, 0, sizeof occupiedArray);
+    //err int occupiedArray[numRowsColumns][numRowsColumns];
+    //err memset(occupiedArray, 0, sizeof occupiedArray);
+    //err int relocateFlag;
     float newXZero;
     float newYZero;
     int toDrawShape;
-    int relocateFlag;
     float scalar = 20/16;
     float offset = 7.5;
 
@@ -351,25 +353,25 @@ int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, stru
         toDrawShape = ptrMain->shapeMarker[i];
 
         //*** ERROR CHECK - LOCATION OCCUPIED?
-        if (occupiedArray[ptrMain->xGrid[i]][ptrMain->yGrid[i]] == 1)
-        {
-            relocateFlag = 1;
-        }
+        //errif (occupiedArray[ptrMain->xGrid[i]][ptrMain->yGrid[i]] == 1)
+        //err{
+        //err    relocateFlag = 1;
+        //err}
         
-        while (relocateFlag == 1)
-        {
-            printf("\nLocation occupied! Give new coordinates");
-            printf("\nX Coord: ");
-            scanf("%d", &xGridLoc);
-            printf("\nY Coord: ");
-            scanf("%d", &yGridLoc);
-            //*** ERROR CHECK - INPUTS VALID?
+        //errwhile (relocateFlag == 1)
+        //err{
+        //err   printf("\nLocation occupied! Give new coordinates");
+        //err    printf("\nX Coord: ");
+        //err    scanf("%d", &xGridLoc);
+        //err    printf("\nY Coord: ");
+        //err    scanf("%d", &yGridLoc);
+        //*** ERROR CHECK - INPUTS VALID?
 
-            if (occupiedArray[xGridLoc][yGridLoc] != 1)
-            {
-                relocateFlag = 0;
-            }
-        }
+        //err    if (occupiedArray[xGridLoc][yGridLoc] != 1)
+        //err    {
+        //err        relocateFlag = 0;
+        //err    }
+        //err}
 
         // Zero pen at desired grid space
         //fprintf(fGCode,"\nS0\nG0 X%.2f Y%.2f\n", newXZero, newYZero);
@@ -378,17 +380,20 @@ int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, stru
         // Generate sequence for current shape
         for (j = 0; (j < ptrShape[toDrawShape].sides); j++)
         {
-            fprintf(fGCode, "\nS%d\nG%d X%0.2f Y%.2f\n", 1000*ptrShape[toDrawShape].z[j], ptrShape[toDrawShape].z[j], newXZero + scalar*ptrShape[toDrawShape].x[j], newYZero + scalar*ptrShape[toDrawShape].y[j]);
-            sprintf(buffer, "\nS%d\nG%d X%0.2f Y%.2f\n", 1000*ptrShape[toDrawShape].z[j],  ptrShape[toDrawShape].z[j], newXZero + scalar*ptrShape[toDrawShape].x[j], newYZero + scalar*ptrShape[toDrawShape].y[j]);
+            //fprintf(fGCode, "S%d\nG%d X%0.2f Y%.2f\n", 1000*ptrShape[toDrawShape].z[j], ptrShape[toDrawShape].z[j], newXZero + scalar*ptrShape[toDrawShape].x[j], newYZero + scalar*ptrShape[toDrawShape].y[j]);
+            sprintf(buffer, "S%d\nG%d X%0.2f Y%.2f\n", 1000*ptrShape[toDrawShape].z[j],  ptrShape[toDrawShape].z[j], newXZero + scalar*ptrShape[toDrawShape].x[j], newYZero + scalar*ptrShape[toDrawShape].y[j]);
             SendCommands(buffer);
+            Sleep(1000);
 
 
         }
         // Marks location as occupied once full shape command sequence is formed
-        occupiedArray[xGridLoc][yGridLoc] = 1;
+        //err occupiedArray[xGridLoc][yGridLoc] = 1;
     }
     // Zeroes pen now that sequence is complete
-    fprintf(fGCode, "\nS0\nG0 X0 Y0\n");
+    //fprintf(fGCode, "\nS0\nG0 X0 Y0\n");
+    sprintf(buffer, "\nS0\nG0 X0 Y0\n");
+    SendCommands(buffer);
     Sleep(5000);
 
     // Closes G-Code
@@ -397,7 +402,7 @@ int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, stru
     // Checs G-Code is closed
     if (fGCode == NULL)
     {
-        printf("File not closed successfully");
+        return 3;
     }
 
     return 1;
