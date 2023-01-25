@@ -381,7 +381,7 @@ int GCodeGenerationFunction(char buffer[100], struct CommandArray *ptrMain, stru
         }
     }
     /* Zero the pen once all drawings have been completed, close the gcode if neccessary and */
-    //fprintf(fGCode, "\nS0\nG0 X0 Y0\n");
+    //F fprintf(fGCode, "\nS0\nG0 X0 Y0\n");
     sprintf(buffer, "\nS0\nG0 X0 Y0\n");
     SendCommands(buffer);
     Sleep(5000);

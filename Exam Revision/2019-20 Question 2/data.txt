@@ -1,0 +1,15 @@
+Fred Bloggs		73
+Michael Smith	43
+Claire White	64
+Simon Black		23
+Joshua Mason	-20
+Jenny Jones		57
+George Clark	40
+Ann Bell		101
+Fay Allen		52
+John Morris		60
+Steven Hayes	47
+Hannah Jackson	94
+Alex Benson		50
+Susan Baker		70
+Wendy Brooks	57
